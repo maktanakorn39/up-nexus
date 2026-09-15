@@ -1,7 +1,7 @@
 /* UP Nexus service worker — makes the installed app open with no connection.
    Only used by the `dist-web` build (a service worker needs a real same-origin
    .js file, which neither file:// nor the artifact host can provide). */
-const CACHE = 'upnexus-v3';
+const CACHE = 'upnexus-v4';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
                './icon-180.png', './icon-192.png', './icon-512.png'];
 

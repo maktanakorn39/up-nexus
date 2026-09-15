@@ -163,6 +163,13 @@ p{margin:0}
 .ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .spacer{flex:1}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}   /* components set display:flex/grid, which would otherwise beat the attribute */
+/* installed web app (iPhone/iPad): the status bar is drawn over the page, so give its white text
+   a soft fade to sit on — zero height in a normal browser tab, where there is no inset */
+body::before{
+  content:"";position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);z-index:100;
+  background:linear-gradient(rgba(8,11,20,.42),rgba(8,11,20,0));pointer-events:none;
+}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes popin{from{opacity:0;transform:scale(.97) translateY(6px)}}
 @keyframes tick{40%{transform:scale(1.22)}}
@@ -173,7 +180,8 @@ p{margin:0}
 /* left icon rail */
 .rail{
   width:96px;flex:none;position:sticky;top:0;height:100dvh;
-  display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:calc(16px + env(safe-area-inset-top,0px)) 10px calc(16px + env(safe-area-inset-bottom,0px));
   background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border-right:1px solid var(--glass-brd);overflow-y:auto;overflow-x:hidden;z-index:30;
 }
@@ -197,7 +205,13 @@ p{margin:0}
 
 /* content column */
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
-.shell{padding:26px 34px 60px;max-width:1500px;width:100%;margin:0 auto}
+.shell{
+  max-width:1500px;width:100%;margin:0 auto;
+  padding-top:calc(26px + env(safe-area-inset-top,0px));
+  padding-right:max(34px,env(safe-area-inset-right,0px));
+  padding-bottom:calc(60px + env(safe-area-inset-bottom,0px));
+  padding-left:34px;
+}
 
 /* topbar */
 .topbar{display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap}
@@ -679,14 +693,18 @@ kbd{
 .quick-hint code{background:var(--surface-2);border-radius:7px;padding:3px 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--muted)}
 
 /* ---------------- toast ---------------- */
-.toast-wrap{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:10px;z-index:200;align-items:center;pointer-events:none}
+.toast-wrap{position:fixed;bottom:calc(26px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:10px;z-index:200;align-items:center;pointer-events:none}
 .toast{
   background:var(--text);color:var(--bg);padding:13px 22px;border-radius:999px;font-size:13.5px;font-weight:600;
   box-shadow:0 20px 40px -20px rgba(0,0,0,.8);animation:popin .28s var(--ease);display:flex;align-items:center;gap:14px;pointer-events:auto;
 }
 .toast button{color:var(--accent);font-weight:800}
 
-/* ---------------- mobile ---------------- */
+/* ---------------- responsive ----------------
+   desktop  > 1000px     sidebar rail, 12-column bento
+   tablet   701–1000px   iPad held upright: rail stays, two phone-width columns
+   phone    ≤ 700px, or ≤ 1000px wide and ≤ 500px tall (phone landscape):
+            drawer rail, bottom tab bar, FAB — keep in sync with isPhone() in core.js */
 .tabbar{display:none}
 .fab{display:none}
 .scrim{display:none}
@@ -694,9 +712,40 @@ kbd{
 @media(max-width:1180px){
   .bento>*{grid-column:span 6}
   .bento>.span-12{grid-column:1/-1}
+  /* the week grid needs the room; its sidebar (mini month + calendar list) does not */
+  .bento>.span-9{grid-column:span 8}
+  .bento>.span-9+.span-3{grid-column:span 4}
   .split{grid-template-columns:1fr}
 }
+
+/* phone + tablet portrait: filter / scope / nav strips swipe sideways instead of stacking into rows */
 @media(max-width:1000px){
+  .card-head>.seg,.card-head>.chips{
+    max-width:100%;min-width:0;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  }
+  .card-head>.seg::-webkit-scrollbar,.card-head>.chips::-webkit-scrollbar{display:none}
+  .card-head>.seg button,.card-head>.chips>.chip{flex:none}
+}
+
+/* tablet portrait — iPad mini / iPad / Air / Pro 11 held upright */
+@media(min-width:701px) and (max-width:1000px) and (min-height:501px){
+  .rail{width:88px;padding-left:8px;padding-right:8px}
+  .rail-btn{width:72px}
+  .shell{padding-left:20px;padding-right:max(20px,env(safe-area-inset-right,0px))}
+  .bento{gap:14px;grid-auto-flow:row dense}   /* dense: a lone half card pulls the next half up beside it */
+  .bento>.hero,.bento>.span-9,.bento>.span-9+.span-3{grid-column:1/-1}
+  .pad{padding:20px}
+  .topbar{gap:12px}
+  .topbar h1{font-size:26px}
+  .topbar .search{flex:1 1 170px;padding:0 16px}
+  .search input{width:100%}
+  .hero{padding:26px 24px}
+  .hero h2{font-size:26px}
+  .wk{height:calc(100dvh - 250px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:560px}
+}
+
+@media(max-width:700px),(max-width:1000px) and (max-height:500px){
   .rail{
     position:fixed;inset:0 auto 0 0;transform:translateX(-100%);transition:transform .25s var(--ease);
     width:104px;box-shadow:0 0 60px rgba(0,0,0,.4);
@@ -730,13 +779,6 @@ kbd{
   .pad{padding:15px}
   .card-head{margin-bottom:12px;gap:9px}
   .card-head h3{font-size:16px}
-  /* filter / scope / nav strips swipe sideways instead of stacking into many rows */
-  .card-head>.seg,.card-head>.chips{
-    max-width:100%;min-width:0;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;
-    scrollbar-width:none;-webkit-overflow-scrolling:touch;
-  }
-  .card-head>.seg::-webkit-scrollbar,.card-head>.chips::-webkit-scrollbar{display:none}
-  .card-head>.seg button,.card-head>.chips>.chip{flex:none}
 
   .hero{padding:18px;border-radius:20px}
   .hero h2{font-size:21px}
@@ -808,6 +850,20 @@ kbd{
   .mo-cell .pill{width:7px;height:7px;padding:0;border-radius:50%;font-size:0;gap:0;overflow:hidden}
   .mo-cell .pill .bul{width:7px;height:7px;border-radius:50%;border:0;background:currentColor}
   .mo-cell .more{display:none}
+}
+/* touch screens have no hover — show the controls desktop reveals on mouse-over */
+@media(hover:none){
+  .chk-row .del,.notif-row .x{opacity:1}
+}
+/* short screens (iPad landscape is 744–834px tall): tighten the rail so Help / Settings stay in view */
+@media(max-height:900px){
+  .rail{gap:2px}
+  .brand{width:46px;height:46px;border-radius:15px;margin-bottom:6px}
+  .rail-btn{padding:6px 4px;gap:3px}
+}
+@media(max-height:780px) and (min-width:701px){
+  .rail-btn{font-size:0;gap:0;padding:9px 4px}   /* icons only; the label stays as the accessible name */
+  .rail-btn .ic{width:22px;height:22px}
 }
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
@@ -1357,7 +1413,8 @@ const save = () => {
 };
 
 /* ---------------- ui state (not persisted) ---------------- */
-const isPhone = () => matchMedia('(max-width: 1000px)').matches;
+// same query as the phone @media in styles.css — iPads held upright (701–1000px) keep the desktop rail
+const isPhone = () => matchMedia('(max-width: 700px), (max-width: 1000px) and (max-height: 500px)').matches;
 const ui = {
   view: 'today',
   calView: isPhone() ? 'day' : 'week',
